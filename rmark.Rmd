@@ -1,0 +1,115 @@
+---
+title: "Coursera Proj 1"
+output: html_document
+---
+
+For this assignment, the first step is to load the data file “activity.csv” by read.csv.
+Next, a histogram of the daily total number of steps taken is generated, showing the distribution of these totals.
+
+``` {r,echo=TRUE,warning=FALSE}
+library(plyr)
+df<-read.csv("activity.csv")
+df1<-ddply(df,.(date),function(x) sum(x$steps))
+hist(df1$V1,xlab = 'Steps')
+```
+
+
+Then we calculate the mean and the median of the number of steps taken.
+
+
+
+```{r ,echo=TRUE,warning=FALSE}
+m<-mean(df1$V1,na.rm = TRUE)
+n<-median(df1$V1,na.rm = TRUE)
+```
+
+The mean number of steps per day is `r m` and the median of the number of steps per day is `r n` .
+
+
+To exam the average daily activity pattern, we create a time series plot (i.e. type = “l”) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+```{r ,echo=TRUE,warning=FALSE}
+df2<-tapply(df$steps ,df$interval , function(x) mean(x,na.rm = TRUE),simplify = TRUE)
+df2<-data.frame(interval=names(df2),steps=df2)
+with(df2,plot(interval,steps,type="l"))
+```
+
+
+Next is to check which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps:
+
+```{r}
+a<-which.max(df2$steps)
+df2[a,]$interval
+```
+
+First, we calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs):
+
+```{r}
+length(which(! complete.cases(df)))
+
+```
+
+
+So the original data set has 2304 rows with missing data.
+
+We use a simple strategy for filling in all of the missing values in the dataset. If a 5-minute interval has missing value, we use the mean for that 5-minute interval.
+
+We create a new data frame df4 that is equal to the original dataset but with the missing data filled in (using mean for that interval for imputation):
+
+```{r}
+a<-complete.cases(df)
+df3<-df[a,]
+df4<-df
+a<-is.na(df4$steps)
+rval<-tapply(df3$steps ,df3$interval , mean)
+df4$steps[a]<-rval[as.character(df4$interval[a])]
+head(df4)
+length(which(! complete.cases(df4)))
+```
+
+
+```{r,warning=FALSE}
+df5<-ddply(df4,.(date),function(x) sum(x$steps))
+hist(df5$V1,xlab = 'Steps')
+m<-mean(df5$V1)
+n<-median(df5$V1)
+```
+
+The new mean number of steps per day is `r m` and the median of the number of steps per day is `r n` .
+
+
+
+
+Now,First we create a new factor variable “wk” in the dataset with two levels - “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+Next we make a panel plot containing a time series plot (i.e. type = “l”) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+
+```{r}
+is_weekday <- function(d) {
+    wd <- weekdays(d)
+    ifelse (wd == "Saturday" | wd == "Sunday", "weekend", "weekday")
+}
+
+wx <- sapply(as.Date(df4$date), is_weekday)
+df4$wk <- as.factor(wx)
+head(df4)
+wk_df <- aggregate(steps ~ wk+interval, data=df4, FUN=mean)
+
+library(lattice)
+xyplot(steps ~ interval | factor(wk),
+       layout = c(1, 2),
+       xlab="Interval",
+       ylab="Number of steps",
+       type="l",
+       lty=1,
+       data=wk_df)
+```
+
+
+
+
+
+
+
+
+
+
